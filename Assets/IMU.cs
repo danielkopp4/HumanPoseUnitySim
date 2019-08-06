@@ -17,7 +17,7 @@ public class IMU : MonoBehaviour
     private Vector3 lastLinVel;
     private Vector3 lastAngVel;
     private float timer = 0.0f;
-    readonly int MAX_LINES = 100;
+    readonly int MAX_LINES = 10;
     string[] lines;
     int index;
     string path;
@@ -25,8 +25,8 @@ public class IMU : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        path = $"{transform.name}.csv";
-        File.WriteAllText(path, "LinVel: x,y,z,LinAccel: x,y,z,AngVel: x,y,z,AngAccel: x,y,z,time,name");
+        path = $"Z:/Share/csvs/{transform.parent.name}.csv";
+        File.WriteAllText(path, "LinVel: x,y,z,AngVel: x,y,z,time,name\n");
         lines = new string[MAX_LINES];
         index = 0;
     }
@@ -87,13 +87,13 @@ public class IMU : MonoBehaviour
 
             timer = 0;
 
-            saveCSV(linVel, linAccel, angVel, angAccel);
+            saveCSV(linVel, angVel);
         }
     }
 
-    void saveCSV(Vector3 linVel, Vector3 linAccel, Vector3 angVel, Vector3 angAccel)
+    void saveCSV(Vector3 linVel, Vector3 angVel)
     {
-        save($"{linVel.x},{linVel.y},{linVel.z},{linAccel.x},{linAccel.y},{linAccel.z},{angVel.x},{angVel.y},{angVel.z},{angAccel.x},{angAccel.y},{angAccel.z},{Time.time},{transform.parent.name}");
+        save($"{linVel.x},{linVel.y},{linVel.z},{angVel.x},{angVel.y},{angVel.z},{Time.time},{transform.parent.name}");
     }
 
     void save(string str)
@@ -103,7 +103,9 @@ public class IMU : MonoBehaviour
         #endif
 
         if (index == MAX_LINES) {
-            Debug.Log("saving");
+            #if DEBUG
+                Debug.Log("saving");
+            #endif
             File.AppendAllLines(path, lines);
             index = 0;
         } else
