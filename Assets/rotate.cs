@@ -86,6 +86,11 @@ public class CSVData
         return integrals;
     }
 
+    public bool atEnd()
+    {
+        return prevIndex == times.Length - 1;
+    }
+    
     public float[] getTimes(DataPoint[] dataPoints)
     {
         float[] times = new float[dataPoints.Length];
@@ -110,7 +115,18 @@ public class CSVData
 
         if (prevIndex == times.Length - 1)
         {
-            return times.Length - 1;
+            return prevIndex;
+        }
+
+        if (time >= times[prevIndex + 1])
+        {
+            prevIndex++;
+            return prevIndex;
+        }
+
+        if (prevIndex == times.Length - 2)
+        {
+            return prevIndex;
         }
 
         if (time >= times[prevIndex + 2])
@@ -119,11 +135,7 @@ public class CSVData
             return getIndex(time);
         }
 
-        if (time >= times[prevIndex + 1])
-        {
-            prevIndex++;
-            return prevIndex;
-        }
+        
 
         return prevIndex;
     }
@@ -142,10 +154,10 @@ public class CSVData
             #if DEBUG
                 Debug.Log("End reached");
             #endif
-            index = times.Length - 1;
+            realIndex = times.Length - 1;
         }
 
-        return integrals[realIndex];
+        return dataPoints[realIndex];
     }
 
     public DataPoint getIntegral(int index)
@@ -167,13 +179,29 @@ public class Rotater
 
     public Rotater(string path, Transform _body)
     {
-        data = new CSVData(File.ReadAllLines(path));
+        string[] strings = File.ReadAllLines(path);
+        List<string> stringFinal = new List<string>();
+
+        foreach (string str in strings)
+        {
+            if (str.Contains(","))
+            {
+                stringFinal.Add(str);
+            }
+        }
+
+        data = new CSVData(stringFinal.ToArray());
         body = _body;
     }
 
     public void update(float time)
     {
         int index = data.getIndex(time);
+        if (data.atEnd())
+        {
+            Debug.Log("done");
+            return;
+        }
         DataPoint this_position = data.getIntegral(index);
         DataPoint next_position = data.getIntegral(index + 1);
 
@@ -187,14 +215,17 @@ public class Rotater
 
 public class rotate : MonoBehaviour
 {
-
     readonly string path = "Z:/Share/csvs";
     readonly bool read_all = true;
     Rotater rotater;
     // Start is called before the first frame update
     void Start()
     {
-        Transform child = transform.Find("braco.R");
+
+        //TODO: record beginning offset values
+        //Model and original should have the same starting position
+
+        Transform child = GameObject.Find("braco.R").transform;
         rotater = new Rotater("Z:/Share/csvs/braco.R.csv", child);
     }
 

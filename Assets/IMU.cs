@@ -1,4 +1,5 @@
 ﻿#define DEBUG
+//#define ENABLED
 
 using System.Collections;
 using System.Collections.Generic;
@@ -25,15 +26,18 @@ public class IMU : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+#if ENABLED
         path = $"Z:/Share/csvs/{transform.parent.name}.csv";
         File.WriteAllText(path, "LinVel: x,y,z,AngVel: x,y,z,time,name\n");
         lines = new string[MAX_LINES];
         index = 0;
+#endif 
     }
 
     // Update is called once per frame
     void Update()
     {
+#if ENABLED
         timer += Time.deltaTime;
         if (timer > (1 / updateFreq))
         {
@@ -98,14 +102,14 @@ public class IMU : MonoBehaviour
 
     void save(string str)
     {
-        #if DEBUG
+#if DEBUG
             Debug.Log(str);
-        #endif
+#endif
 
         if (index == MAX_LINES) {
-            #if DEBUG
+#if DEBUG
                 Debug.Log("saving");
-            #endif
+#endif
             File.AppendAllLines(path, lines);
             index = 0;
         } else
@@ -113,5 +117,6 @@ public class IMU : MonoBehaviour
             lines[index] = $"{str}\n";
             ++index;
         }
+#endif
     }
 }
