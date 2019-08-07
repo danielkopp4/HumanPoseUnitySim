@@ -1,4 +1,4 @@
-﻿#define DEBUG
+﻿//#define DEBUG
 
 using System.Collections;
 using System.Collections.Generic;
@@ -58,7 +58,7 @@ public class CSVData
     public string name;
     private int prevIndex = 0;
 
-    public CSVData(string[] csv)
+    public CSVData(string[] csv, Vector3 positionOrigin, Vector3 angularOrigin)
     {
         name = csv[1].Split(',')[7];
         dataPoints = new DataPoint[csv.Length - 1];
@@ -67,16 +67,16 @@ public class CSVData
         {
             dataPoints[i] = DataPoint.FromCSVString(csv[i + 1]);
         }
-        integrals = integrate(dataPoints);
+        integrals = integrate(dataPoints, positionOrigin, angularOrigin);
         times = getTimes(dataPoints);
     }
 
-    public DataPoint[] integrate(DataPoint[] dataPoints)
+    public DataPoint[] integrate(DataPoint[] dataPoints, Vector3 positionOrigin, Vector3 angularOrigin)
     {
         DataPoint[] integrals = new DataPoint[dataPoints.Length];
 
         float dptime = dataPoints[0].time;
-        integrals[0] = new DataPoint(dataPoints[0].linear * dptime, dataPoints[0].angular * dptime, dptime);
+        integrals[0] = new DataPoint(dataPoints[0].linear * dptime + positionOrigin, dataPoints[0].angular * dptime + angularOrigin, dptime);
 
         for (int i = 1; i < dataPoints.Length; i++)
         {
@@ -190,8 +190,8 @@ public class Rotater
             }
         }
 
-        data = new CSVData(stringFinal.ToArray());
         body = _body;
+        data = new CSVData(stringFinal.ToArray(), body.position, body.eulerAngles);
     }
 
     public void update(float time)
@@ -199,7 +199,6 @@ public class Rotater
         int index = data.getIndex(time);
         if (data.atEnd())
         {
-            Debug.Log("done");
             return;
         }
         DataPoint this_position = data.getIntegral(index);
@@ -215,23 +214,53 @@ public class Rotater
 
 public class rotate : MonoBehaviour
 {
-    readonly string path = "Z:/Share/csvs";
+    readonly string path = "Z:/Share/csvs/final_csv";
     readonly bool read_all = true;
-    Rotater rotater;
+    Rotater[] rotaters;
     // Start is called before the first frame update
+
+    void OnGUI()
+    {
+        GUILayout.Label("Magnetometer reading: " + Input.compass.rawVector.ToString());
+    }
+
     void Start()
     {
-
+        Input.compass.enabled = true;
         //TODO: record beginning offset values
         //Model and original should have the same starting position
+        string[] files = Directory.GetFiles(path);
+        rotaters = new Rotater[files.Length];
 
-        Transform child = GameObject.Find("braco.R").transform;
-        rotater = new Rotater("Z:/Share/csvs/braco.R.csv", child);
+        for (int i = 0; i < files.Length; i++)
+        {
+            string name = getNameFromPath(files[i]);
+            Debug.Log($"{name} found");
+            Transform child = GameObject.Find(name).transform;
+            rotaters[i] = new Rotater(files[i], child);
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        rotater.update(Time.time);
+        for (int i = 0; i < rotaters.Length; i++)
+        {
+            rotaters[i].update(Time.time);
+        }
+    }
+
+    string getNameFromPath(string path)
+    {
+        string[] folders = path.Split('/');
+        string[] subParts = folders[folders.Length - 1].Split('\\')[1].Split('.');
+        string[] finalNameArr = new string[subParts.Length - 1];
+
+        for (int i = 0; i < finalNameArr.Length; i++)
+        {
+            finalNameArr[i] = subParts[i];
+        }
+
+        return string.Join(".", finalNameArr);
     }
 }
