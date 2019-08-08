@@ -8,7 +8,7 @@ using System.IO;
 
 public class IMU : MonoBehaviour
 {
-    float updateFreq = 2.0f;
+    float updateFreq = 30f;
     Vector3 angVel;
     Vector3 angAccel; 
     Vector3 linVel;
@@ -28,9 +28,23 @@ public class IMU : MonoBehaviour
     {
 #if ENABLED
         path = $"Z:/Share/csvs/{transform.parent.name}.csv";
-        File.WriteAllText(path, "LinVel: x,y,z,AngVel: x,y,z,time,name\n");
+        File.WriteAllText(path, "LinAccel: x,y,z,AngVel: x,y,z,Magnetometer: x,y,z,time,name\n");
         lines = new string[MAX_LINES];
         index = 0;
+        linAccel.x = (linVel.x - lastLinVel.x) / timer;
+        linAccel.y = (linVel.y - lastLinVel.y) / timer;
+        linAccel.z = (linVel.z - lastLinVel.z) / timer;
+        angAccel.x = ((angVel.x - lastAngVel.x) / timer) / 9.81f;
+        angAccel.y = ((angVel.y - lastAngVel.y) / timer) / 9.81f;
+        angAccel.z = ((angVel.z - lastAngVel.z) / timer) / 9.81f;
+
+        lastPos = transform.position;
+
+        lastAng.x = Mathf.Abs((transform.rotation.eulerAngles).x);
+        lastAng.y = Mathf.Abs((transform.rotation.eulerAngles).y);
+        lastAng.z = Mathf.Abs((transform.rotation.eulerAngles).z);
+
+        timer = 0;
 #endif 
     }
 
@@ -90,14 +104,14 @@ public class IMU : MonoBehaviour
             lastAng.z = Mathf.Abs((transform.rotation.eulerAngles).z);
 
             timer = 0;
-
-            saveCSV(linVel, angVel);
+        // Add magnetometer 
+            saveCSV(linAccel, angVel, Vector3.zero);
         }
     }
 
-    void saveCSV(Vector3 linVel, Vector3 angVel)
+    void saveCSV(Vector3 linAccel, Vector3 angVel, Vector3 mag)
     {
-        save($"{linVel.x},{linVel.y},{linVel.z},{angVel.x},{angVel.y},{angVel.z},{Time.time},{transform.parent.name}");
+        save($"{linAccel.x},{linAccel.y},{linAccel.z},{angVel.x},{angVel.y},{angVel.z},{mag.x},{mag.y},{mag.z},{Time.time},{transform.parent.name}");
     }
 
     void save(string str)
